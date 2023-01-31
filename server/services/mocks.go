@@ -19,6 +19,7 @@ var (
 type Mocks interface {
 	AddMock(sessionID string, mock *types.Mock) (*types.Mock, error)
 	GetMocks(sessionID string) (types.Mocks, error)
+	RemoveMock(sessionID string, mockID string) error
 	GetMockByID(sessionID, id string) (*types.Mock, error)
 	LockMocks(ids []string) types.Mocks
 	UnlockMocks(ids []string) types.Mocks
@@ -77,6 +78,31 @@ func (s *mocks) GetMocks(sessionID string) (types.Mocks, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return session.Mocks.Clone(), nil
+}
+
+func (s *mocks) RemoveMock(sessionID string, mockID string) error {
+	session, err := s.GetSessionByID(sessionID)
+	if err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var target_index = -1
+	for i := 0; i < len(session.Mocks); i++ {
+		fmt.Println(session.Mocks[i])
+		if session.Mocks[i].State.ID == mockID {
+			target_index = i
+			break
+		}
+	}
+
+	if target_index != -1 {
+		session.Mocks = append(session.Mocks[:target_index], session.Mocks[target_index+1:]...)
+	}
+	go s.persistence.StoreSessions(s.sessions.Clone())
+	return nil
 }
 
 func (s *mocks) LockMocks(ids []string) types.Mocks {

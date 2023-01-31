@@ -45,6 +45,22 @@ func (a *Admin) GetMocks(c echo.Context) error {
 	return respondAccordingAccept(c, mocks)
 }
 
+func (a *Admin) RemoveMock(c echo.Context) error {
+	sessionID := c.QueryParam("session")
+	if sessionID == "" {
+		sessionID = a.mocksServices.GetLastSession().ID
+	}
+
+	if id := c.QueryParam("id"); id != "" {
+		err := a.mocksServices.RemoveMock(sessionID, id)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusNotFound, err.Error())
+		}
+		return nil
+	}
+	return nil
+}
+
 func (a *Admin) AddMocks(c echo.Context) error {
 	if reset, _ := strconv.ParseBool(c.QueryParam("reset")); reset {
 		a.mocksServices.Reset(false)
